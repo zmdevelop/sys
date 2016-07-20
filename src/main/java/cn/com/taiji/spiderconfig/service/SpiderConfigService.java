@@ -236,6 +236,7 @@ public class SpiderConfigService {
 			Seed seed = new Seed(spiderSeed.getSeedName(),spiderSeed.getUrl());
 			cnf.addSeed(seed);
 		}
+		cnf.set("logger.level", "ERROR");
 		cnf.set("duration", spiderConfig.getDuration());
 		cnf.set("worker.download.size", spiderConfig.getDownloadSize());
 		cnf.set("worker.extract.size", spiderConfig.getExtractSize());
