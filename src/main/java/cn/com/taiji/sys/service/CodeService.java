@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.annotation.Resource;
 import javax.inject.Inject;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -17,6 +18,7 @@ import javax.persistence.criteria.Root;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -38,15 +40,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 数据字典Service
- * @author
  * @date  2014年6月11日
  */
 @Service
 public class CodeService 
 {
-
 	@Inject
 	private CodeRepository codeRepository;
+	
+	StringBuffer stringBuffer;
 	
 	@Inject
 	private ObjectMapper objectMapper;
@@ -54,7 +56,6 @@ public class CodeService
 	
 	/**
 	 * 查询单级数据字典信息
-	 * @param searchParameters
 	 *        查询参数的map集合
 	 * @return
 	 *       查询的结果,map类型
