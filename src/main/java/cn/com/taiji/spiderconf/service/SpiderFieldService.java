@@ -57,6 +57,10 @@ public class SpiderFieldService {
 				if(StringUtils.hasText(channelId)){
 					pl.add(cb.equal(root.<String>get("spiderChannel").get("id"),channelId));
 				}
+				String contentId = searchDto.getSpiderContentId();
+				if(StringUtils.hasText(contentId)){
+					pl.add(cb.equal(root.<String>get("spiderContent").get("id"),contentId));
+				}
 				return cb.and(pl.toArray(new Predicate[0]));
 			}
 		}, request);
