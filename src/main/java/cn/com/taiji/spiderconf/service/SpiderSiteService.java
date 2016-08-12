@@ -174,13 +174,13 @@ public class SpiderSiteService {
 
 		List<SpiderChannel> pages = spiderConfig.getSpiderChannels();
 		for (SpiderChannel page : pages) {
-
+			page.setName(page.getName()+"_LinkList");//resultHandler处理以"_LinkList"结尾的不处理(DB,Solr)
 			if (null != page.getChannelType()
 					&& "0".equals(page.getChannelType())) {
 				this.setDefaultPage(page, cnf);// 默认列表
 			} else if (null != page.getChannelType()
 					&& "1".equals(page.getChannelType())){
-				this.setCustomPage(page, cnf);// 自定义内容抽取/或连接抽取
+				this.setCustomPage(page, cnf);// 自定义连接抽取
 			}
 
 		}
@@ -189,7 +189,7 @@ public class SpiderSiteService {
 			if(page.getContentType()!=null && page.getContentType().equals("0")){
 				this.setContentPage(page, cnf);// 标准内容抽取
 			}else if(page.getContentType()!=null && page.getContentType().equals("1")){
-				this.setCustomContentPage(page,cnf);
+				this.setCustomContentPage(page,cnf);//自定义内容抽取
 			}
 		}
 		Spiderman spiderman = new Spiderman(cnf);
