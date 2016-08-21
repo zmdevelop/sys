@@ -1,6 +1,10 @@
 package cn.com.taiji.spiderconf.service;
 
 import java.lang.reflect.Constructor;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,8 +17,10 @@ import javax.persistence.criteria.Root;
 
 import net.kernal.spiderman.Config;
 import net.kernal.spiderman.Spiderman;
+import net.kernal.spiderman.kit.JdbcUtils;
 import net.kernal.spiderman.kit.K;
 import net.kernal.spiderman.kit.Seed;
+import net.kernal.spiderman.kit.TomcatDataSource;
 import net.kernal.spiderman.logger.Logger;
 import net.kernal.spiderman.logger.Loggers;
 import net.kernal.spiderman.worker.extract.ExtractTask;
@@ -31,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -40,6 +47,7 @@ import cn.com.taiji.spiderconf.domain.SpiderContent;
 import cn.com.taiji.spiderconf.domain.SpiderField;
 import cn.com.taiji.spiderconf.domain.SpiderSite;
 import cn.com.taiji.spiderconf.dto.SpiderSiteDto;
+import cn.com.taiji.spiderconf.respository.SpiderContentRespository;
 import cn.com.taiji.spiderconf.respository.SpiderFieldRespository;
 import cn.com.taiji.spiderconf.respository.SpiderSiteRespository;
 import cn.com.taiji.sys.util.Pagination;
@@ -53,6 +61,11 @@ public class SpiderSiteService {
 	private SpiderSiteRespository siteRespository;
 	@Autowired
 	private SpiderFieldRespository fieldRespository;
+	@Autowired
+	private SpiderContentRespository spiderContentRespository;
+	
+	@Autowired
+	JdbcTemplate jdbcTemplate;
 
 	private final Map<String, Spiderman> spiderManMap = new HashMap<String, Spiderman>();
 
@@ -132,6 +145,8 @@ public class SpiderSiteService {
 		SpiderSite site = this.siteRespository.findOne(siteId);
 		site.setStatus(status);
 		this.siteRespository.saveAndFlush(site);
+		if(status)
+		createTable(siteId);
 		if (status) {
 			pramToConvert(site);
 		} else {
@@ -140,6 +155,58 @@ public class SpiderSiteService {
 			}
 		}
 
+	}
+	
+	private void createTable(String siteId)
+	{
+		List<SpiderContent> spiderContents = spiderContentRespository.findBySiteId(siteId);
+		//jdbcTemplate.update(sql);
+		StringBuffer sb = new StringBuffer();
+		for(SpiderContent sc:spiderContents)
+		{
+			if(isExitTable(sc.getTableName()))
+			{
+				continue;
+			}
+			sb.append("CREATE TABLE `");
+			List<SpiderField> fields = fieldRespository.findByContentId(sc.getId());
+			sb.append(sc.getTableName()+"`( ");
+			sb.append("`id` varchar(50) NOT NULL,");
+			for(SpiderField sf : fields)
+			{
+				sb.append("`"+sf.getAttr()+"` varchar(2000) DEFAULT NULL,");
+			}
+			sb.append(" PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+		    log.info(sb.toString());
+			jdbcTemplate.update(sb.toString());
+		}
+		
+	}
+	
+	private boolean isExitTable(String tableName)
+	{
+		 Connection conn = null;
+		 ResultSet tabs = null;  
+		try {
+			conn = jdbcTemplate.getDataSource().getConnection();
+		        DatabaseMetaData dbMetaData = conn.getMetaData();  
+		        String[]   types   =   { "TABLE" };  
+		        tabs = dbMetaData.getTables(null, null, tableName, types);  
+		        if (tabs.next()) {  
+		            return true;  
+		        }  
+		    } catch (Exception e) {  
+		        e.printStackTrace();  
+		    }finally{  
+		        try {
+					tabs.close();
+					 conn.close(); 
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}  
+		    }  
+		    return false;  
 	}
 
 	private void pramToConvert(SpiderSite spiderConfig) {
@@ -205,7 +272,7 @@ public class SpiderSiteService {
 		List<SpiderField> fieldList = page.getSpiderFields();
 		net.kernal.spiderman.worker.extract.schema.Page schemapage = new net.kernal.spiderman.worker.extract.schema.Page(
 				page.getName()) {
-
+           
 			public void config(UrlMatchRules rules, Models models) {
 				rules.add(new RegexRule(page.getUrl())
 						.setNegativeEnabled(false));
@@ -238,6 +305,7 @@ public class SpiderSiteService {
 				}
 			}
 		};
+		schemapage.setContentType(page.getContentType()+"-"+page.getTableName());
 		final Map<String, Class<Extractor>> extractors = cnf.getExtractors()
 				.all();
 		final Class<? extends Extractor> extractorClass = extractors
@@ -260,7 +328,6 @@ public class SpiderSiteService {
 			}
 		});
 		cnf.addPage(schemapage);
-		
 	}
 
 	/**

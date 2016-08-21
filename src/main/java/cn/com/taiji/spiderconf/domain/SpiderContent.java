@@ -32,6 +32,8 @@ public class SpiderContent implements Serializable {
 	private String content;
 	private String author;
 	private String origin;
+	@Column(name="table_name")
+	private String tableName;
 	@Column(name="content_type")
 	private String contentType;
 	@ManyToOne
@@ -121,6 +123,10 @@ public class SpiderContent implements Serializable {
 	public void setSpiderFields(List<SpiderField> spiderFields) {
 		this.spiderFields = spiderFields;
 	}
-	
-
+	public String getTableName() {
+		return tableName;
+	}
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
 }

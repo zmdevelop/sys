@@ -21,6 +21,7 @@ public class SpiderContentDto{
 	private String contentType;
 	private String spiderSiteId;
 	private String spiderSiteName;
+	private String tableName;
 	public String getId() {
 		return id;
 	}
@@ -101,6 +102,12 @@ public class SpiderContentDto{
 		this.spiderSiteName = spiderSiteName;
 	}
 	
+	public String getTableName() {
+		return tableName;
+	}
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
 	public SpiderContentDto init(SpiderContent content){
 		BeanUtils.copyProperties(content, this);
 		SpiderSite site = content.getSpiderSite();
