@@ -141,7 +141,7 @@ public class SpiderSiteService {
 		return listAll;
 	}
 
-	public void startSpider(String siteId, Boolean status) {
+	/*public void startSpider(String siteId, Boolean status) {
 		SpiderSite site = this.siteRespository.findOne(siteId);
 		site.setStatus(status);
 		this.siteRespository.saveAndFlush(site);
@@ -155,8 +155,20 @@ public class SpiderSiteService {
 			}
 		}
 
+	}*/
+	public void startSpider(String siteId, Boolean status) {
+		SpiderSite site = this.siteRespository.findOne(siteId);
+		site.setStatus(status);
+		this.siteRespository.saveAndFlush(site);
+		if (status) {
+			pramToConvert(site);
+		} else {
+			if (spiderManMap.get(site.getId()) != null) {
+				spiderManMap.get(site.getId()).stop();
+			}
+		}
+
 	}
-	
 	private void createTable(String siteId)
 	{
 		List<SpiderContent> spiderContents = spiderContentRespository.findBySiteId(siteId);
@@ -221,10 +233,11 @@ public class SpiderSiteService {
 				+ "/content");
 		cnf.set("queue.store.path", "/result/" + spiderConfig.getName()
 				+ "/queue");
-		cnf.set("duration", spiderConfig.getDuration());
+		cnf.set("scheduler.period", spiderConfig.getDuration());		// 调度间隔时间，每隔固定时间重新将种子任务放入队列，并清除一些不需要持久化的消息key
+		//cnf.set("duration", "0");// 运行时间
 		if (spiderConfig.getResultHandler().equals("0"))
 			cnf.set("worker.result.handler",
-					"net.kernal.spiderman.worker.result.handler.impl.DbResultHandler");
+					"net.kernal.spiderman.worker.result.handler.impl.MongoDbResultHandler");
 		if (spiderConfig.getResultHandler().equals("1"))
 			cnf.set("worker.result.handler",
 					"net.kernal.spiderman.worker.result.handler.impl.FileBodyResultHandler");
@@ -305,6 +318,7 @@ public class SpiderSiteService {
 				}
 			}
 		};
+		schemapage.setIsPersisted(true);//内容页持久化 下次启动时不处理
 		schemapage.setContentType(page.getContentType()+"-"+page.getTableName());
 		final Map<String, Class<Extractor>> extractors = cnf.getExtractors()
 				.all();
@@ -378,6 +392,7 @@ public class SpiderSiteService {
 
 			}
 		};
+		schemapage.setIsPersisted(true);//内容页持久化 下次启动时不处理
 		final Map<String, Class<Extractor>> extractors = cnf.getExtractors()
 				.all();
 		final Class<? extends Extractor> extractorClass = extractors
@@ -423,7 +438,6 @@ public class SpiderSiteService {
 		List<SpiderField> fieldList = page.getSpiderFields();
 		net.kernal.spiderman.worker.extract.schema.Page schemapage = new net.kernal.spiderman.worker.extract.schema.Page(
 				page.getName()) {
-
 			public void config(UrlMatchRules rules, Models models) {
 				rules.add(new RegexRule(page.getUrl())
 						.setNegativeEnabled(false));
@@ -465,6 +479,7 @@ public class SpiderSiteService {
 				}
 			}
 		};
+		schemapage.setIsPersisted(false);//列表页不持久化 下次启动时继续扫描列表页
 		final Map<String, Class<Extractor>> extractors = cnf.getExtractors()
 				.all();
 		final Class<? extends Extractor> extractorClass = extractors
@@ -504,6 +519,7 @@ public class SpiderSiteService {
 						.setNegativeEnabled(false));
 			}
 		};
+		schemapage.setIsPersisted(false);//列表页不持久化 下次启动时继续扫描列表页
 		final Map<String, Class<Extractor>> extractors = cnf.getExtractors()
 				.all();
 		final Class<? extends Extractor> extractorClass = extractors
